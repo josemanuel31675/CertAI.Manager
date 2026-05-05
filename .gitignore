@@ -1,0 +1,16 @@
+# .gitignore para ASP.NET Core
+[Bb]in/
+[Oo]bj/
+.vs/
+.vscode/
+appsettings.json
+appsettings.Development.json
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Eliminar si deseas subir el ejecutable (no recomendado)
+ffmpeg.exe
+ffplay.exe
+ffprobe.exe
