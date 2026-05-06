@@ -11,8 +11,8 @@ namespace CertAI.Manager.Controllers // Asegúrate que el namespace sea correcto
 
         public class ConsultaPregunta
         {
-            public string Pregunta { get; set; }
-            public List<string> Opciones { get; set; }
+            public string? Pregunta { get; set; }
+            public List<string>? Opciones { get; set; }
         }
 
         public TrainerController(IGeminiService geminiService, AppDbContext context)
@@ -75,24 +75,33 @@ namespace CertAI.Manager.Controllers // Asegúrate que el namespace sea correcto
 
             var respuestaIA = await LlamarIA(data.Pregunta, opcionesParaIA);
 
+            // Construimos la lista de opciones final para el JSON
+            var todasLasOpciones = new List<object>();
+            if (matchedQuestion != null && matchedQuestion.VceOptions != null)
+            {
+                todasLasOpciones.AddRange(matchedQuestion.VceOptions.Select(o => new { es = o.Text ?? "", en = o.TextEn ?? "" }));
+            }
+            else if (respuestaIA.OpcionesSugeridas != null)
+            {
+                todasLasOpciones.AddRange(respuestaIA.OpcionesSugeridas.Select(o => new { es = o ?? "", en = "" }));
+            }
+
             return Json(new
             {
                 letra = respuestaIA.Letra,
                 fuente = matchedQuestion != null ? $"Base de Datos + IA" : "Azure AI Engine",
                 preguntaTexto = matchedQuestion?.Text ?? data.Pregunta,
                 preguntaEn = matchedQuestion?.TextEn,
-                todasLasOpciones = matchedQuestion != null 
-                    ? matchedQuestion.VceOptions.Select(o => new { es = o.Text, en = o.TextEn }).ToList()
-                    : respuestaIA.OpcionesSugeridas.Select(o => new { es = o, en = "" }).ToList(),
+                todasLasOpciones,
                 opcionCorrectaTexto = respuestaIA.OpcionCorrectaTexto,
                 detalle = respuestaIA.Detalle
             });
         }
 
-
-
-        private async Task<RespuestaIA> LlamarIA(string textoDictado, List<string> opcionesDictadas)
+        private async Task<RespuestaIA> LlamarIA(string? textoDictado, List<string>? opcionesDictadas)
         {
+            if (string.IsNullOrEmpty(textoDictado)) return new RespuestaIA { Letra = "!", Detalle = "Dictado vacío" };
+            
             // 1. Preparamos el mensaje para la IA
             string promptSistema = @"Actúa como un experto certificado en Microsoft Azure AI-900.
                             Tu objetivo es procesar un dictado de voz que puede contener ruidos, palabras mal interpretadas o errores fonéticos.
@@ -139,16 +148,16 @@ namespace CertAI.Manager.Controllers // Asegúrate que el namespace sea correcto
         public class RespuestaIA
         {
             // "A", "B", "C", "D" o "S" para indicar el estado
-            public string Letra { get; set; }
+            public string? Letra { get; set; }
 
             // Explicación técnica de por qué esa es la respuesta (útil para estudiar)
-            public string Detalle { get; set; }
+            public string? Detalle { get; set; }
 
             // La respuesta correcta en texto (ej: "Sistema de seguridad")
-            public string OpcionCorrectaTexto { get; set; }
+            public string? OpcionCorrectaTexto { get; set; }
 
             // Las opciones que la IA identificó en el dictado o generó
-            public List<string> OpcionesSugeridas { get; set; } = new List<string>();
+            public List<string>? OpcionesSugeridas { get; set; } = new List<string>();
         }
 
 

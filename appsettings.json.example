@@ -1,0 +1,17 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=YOUR_SERVER;Initial Catalog=YOUR_DB;User ID=YOUR_USER;Password=YOUR_PASSWORD;"
+  },
+  "AllowedHosts": "*",
+  "AzureOpenAI": {
+    "Endpoint": "https://YOUR_RESOURCE.openai.azure.com/",
+    "ApiKey": "YOUR_KEY",
+    "DeploymentName": "gpt-4o"
+  }
+}

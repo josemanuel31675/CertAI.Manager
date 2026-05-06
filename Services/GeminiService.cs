@@ -17,47 +17,54 @@ public class GeminiService : IGeminiService
 
     public async Task<RespuestaIA> GenerarRespuestaAsync(string promptSistema, string mensajeUsuario)
     {
-        var requestBody = new
+        try 
         {
-            contents = new[] {
-                new { role = "user", parts = new[] { new { text = $"{promptSistema}\n\nDictado: {mensajeUsuario}" } } }
+            var requestBody = new
+            {
+                contents = new[] {
+                    new { role = "user", parts = new[] { new { text = $"{promptSistema}\n\nDictado: {mensajeUsuario}" } } }
+                },
+                safetySettings = new[] {
+                    new { category = "HARM_CATEGORY_HARASSMENT", threshold = "BLOCK_NONE" },
+                    new { category = "HARM_CATEGORY_HATE_SPEECH", threshold = "BLOCK_NONE" },
+                    new { category = "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold = "BLOCK_NONE" },
+                    new { category = "HARM_CATEGORY_DANGEROUS_CONTENT", threshold = "BLOCK_NONE" }
+                }
+            };
+
+            var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync($"{_url}?key={_apiKey}", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                return new RespuestaIA { Letra = "!", Detalle = $"API Error {(int)response.StatusCode}: {errorBody}" };
             }
-        };
 
-        var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-        var response = await _httpClient.PostAsync($"{_url}?key={_apiKey}", content);
-
-        if (response.IsSuccessStatusCode)
-        {
             var jsonResponse = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(jsonResponse);
-            var botText = doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
 
-            // Dentro de GenerarRespuestaAsync, después de obtener botText:
+            if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+            {
+                return new RespuestaIA { Letra = "!", Detalle = "Sin candidatos (Bloqueo de seguridad)." };
+            }
+
+            var botText = candidates[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString() ?? "";
             botText = botText.Replace("```json", "").Replace("```", "").Trim();
 
-            // LOGICA ROBUSTA: Extraer solo lo que está entre llaves
             int inicio = botText.IndexOf('{');
             int fin = botText.LastIndexOf('}');
-
             if (inicio != -1 && fin != -1 && fin > inicio)
             {
                 botText = botText.Substring(inicio, (fin - inicio) + 1);
             }
 
-            Console.WriteLine("JSON Limpio para Deserializar: " + botText);
-
-            try
-            {
-                return JsonSerializer.Deserialize<RespuestaIA>(botText, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            }
-            catch (Exception ex)
-            {
-                return new RespuestaIA { Letra = "!", Detalle = "Error al leer JSON: " + ex.Message };
-            }
-
+            return JsonSerializer.Deserialize<RespuestaIA>(botText, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                   ?? new RespuestaIA { Letra = "!", Detalle = "JSON Null" };
         }
-
-        return new RespuestaIA { Letra = "!", Detalle = "Error de conexión con la IA" };
+        catch (Exception ex)
+        {
+            return new RespuestaIA { Letra = "!", Detalle = "Excepción interna: " + ex.Message };
+        }
     }
 }

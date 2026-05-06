@@ -56,7 +56,7 @@
 <body class="d-flex align-items-center justify-content-center vh-100">
 
     <div class="container text-center">
-        <div id="status" class="status-msg mb-2">LISTO (DB: @(Model?.Id?.Substring(0,8)))</div>
+        <div id="status" class="status-msg mb-2 text-success fw-bold">CONECTADO - IA ACTIVADA (DB: @(Model?.Id?.Substring(0,8)))</div>
 
         <div class="row align-items-center mb-4">
             <div class="col-12"><div id="letra" class="res-letra">--</div></div>
@@ -102,6 +102,7 @@
     </div>
 
     <script>
+        console.log("%c CARGADO - Versión con Logs de Depuración ", "background: #222; color: #bada55; font-size: 20px;");
         let isListening = false;
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = 'es-MX';
@@ -163,7 +164,18 @@
         recognition.onerror = (event) => {
             isListening = false;
             document.getElementById('btnMic').classList.remove('listening');
-            document.getElementById('status').innerText = "ERROR MIC: " + event.error;
+            
+            if (event.error === 'no-speech') {
+                document.getElementById('status').innerText = "NO SE DETECTÓ VOZ";
+                document.getElementById('explicacion').innerText = "No te escuché. Pulsa el micro e intenta de nuevo.";
+            } else {
+                document.getElementById('status').innerText = "ERROR MIC: " + event.error;
+                document.getElementById('explicacion').innerText = "Hubo un problema con el micrófono.";
+            }
+            
+            if (document.getElementById('letra').innerText === "...") {
+                document.getElementById('letra').innerText = "--";
+            }
         };
 
         async function getAIResponse(query) {
@@ -171,25 +183,29 @@
             const letraUI = document.getElementById('letra');
             const explicacionUI = document.getElementById('explicacion');
 
-            // Extraemos las opciones actuales de la pantalla para dar contexto a la IA
-            const opcionesActuales = Array.from(document.querySelectorAll('.option-item'))
-                                         .map(div => div.innerText.replace('○ ', '').replace('● ', '').trim());
+            console.log("Iniciando petición al servidor con query:", query);
 
             try {
-                  const response = await fetch('/Trainer/ProcesarPregunta', {
+                const response = await fetch('/Trainer/ProcesarPregunta', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         pregunta: query,
-                        opciones: opcionesActuales
+                        opciones: []
                     })
                 });
 
                 const data = await response.json();
+                console.log("Datos recibidos del servidor:", data);
 
                 if (data.letra) {
                     letraUI.innerText = data.letra;
                     
+                    if (data.letra === "!") {
+                        explicacionUI.innerHTML = `<span class="text-danger">ERROR: ${data.detalle || 'Error desconocido'}</span>`;
+                        return;
+                    }
+
                     // Renderizamos la pregunta bilingüe
                     explicacionUI.innerHTML = `<span class="text-white">${data.preguntaTexto}</span>`;
                     if (data.preguntaEn) {
@@ -203,9 +219,10 @@
                             const textoEn = opt.en || "";
                             
                             // Coincidencia para marcar correcta
-                            const esCorrecta = textoEs.toLowerCase().includes(data.opcionCorrectaTexto.toLowerCase()) || 
+                            const esCorrecta = data.opcionCorrectaTexto && (
+                                             textoEs.toLowerCase().includes(data.opcionCorrectaTexto.toLowerCase()) || 
                                              data.opcionCorrectaTexto.toLowerCase().includes(textoEs.toLowerCase()) ||
-                                             (textoEn && textoEn.toLowerCase().includes(data.opcionCorrectaTexto.toLowerCase()));
+                                             (textoEn && textoEn.toLowerCase().includes(data.opcionCorrectaTexto.toLowerCase())));
                             
                             const div = document.createElement('div');
                             div.className = "p-2 mb-2 border rounded option-item " + (esCorrecta ? "border-success text-success fw-bold" : "border-secondary");
@@ -224,8 +241,8 @@
                     document.getElementById('status').innerText = "TERMINADO - " + data.fuente;
                 }
             } catch (error) {
+                console.error("Error fetch:", error);
                 document.getElementById('status').innerText = "ERROR DE SERVIDOR";
-                console.error(error);
             }
         }
     </script>
