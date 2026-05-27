@@ -9,96 +9,299 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #000;
+            background-color: #0c0d12;
             color: #fff;
-            overflow: hidden;
-            font-family: sans-serif;
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 140px; /* Espacio para que el botón flotante no tape el contenido */
+            overflow-y: auto;
+        }
+
+        .mic-container {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
         }
 
         #btnMic {
-            width: 90px;
-            height: 90px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            border: 3px solid #222;
-            background: #111;
-            color: #555;
-            transition: all 0.2s;
+            border: none;
+            background: linear-gradient(135deg, #1e1f29 0%, #0d0e15 100%);
+            color: #00ff9d;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        #btnMic:active {
+            transform: scale(0.95);
         }
 
         .listening {
-            border-color: #ff4b2b !important;
-            color: #ff4b2b !important;
-            box-shadow: 0 0 20px #ff4b2b;
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%) !important;
+            color: #fff !important;
+            box-shadow: 0 0 30px rgba(255, 75, 43, 0.6) !important;
             transform: scale(1.1);
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @@keyframes pulse {
+            0% { box-shadow: 0 0 15px rgba(255, 75, 43, 0.4); }
+            100% { box-shadow: 0 0 35px rgba(255, 75, 43, 0.8); }
         }
 
         .res-letra {
-            font-size: 11rem;
+            font-size: 8rem;
             line-height: 1;
             color: #00ff9d;
-            font-weight: 900;
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(0, 255, 157, 0.25);
+            margin-bottom: 10px;
         }
 
         .res-texto {
-            font-size: 1.6rem;
-            color: #ddd;
+            font-size: 1.4rem;
+            color: #f1f5f9;
+            line-height: 1.6;
+            font-weight: 300;
         }
 
         .status-msg {
             font-size: 0.8rem;
-            color: #444;
-            height: 20px;
+            color: #00ff9d;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        .option-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            border-radius: 12px;
+            padding: 16px !important;
+            margin-bottom: 12px !important;
+            transition: all 0.2s ease;
+        }
+        
+        .option-item.border-success {
+            background: rgba(0, 255, 157, 0.04) !important;
+            border-color: #00ff9d !important;
+            color: #00ff9d !important;
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.08);
+            font-weight: 600;
+        }
+        
+        .option-item.border-secondary {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border-color: rgba(255, 255, 255, 0.06) !important;
+            color: #cbd5e1 !important;
+        }
+
+        /* === MODO CORRECCIÓN === */
+        .correction-mode .option-item {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .correction-mode .option-item:hover {
+            background: rgba(255, 200, 0, 0.06) !important;
+            border-color: rgba(255, 200, 0, 0.35) !important;
+        }
+        .option-item.selected-correct {
+            background: rgba(0, 255, 157, 0.08) !important;
+            border-color: #00ff9d !important;
+            color: #00ff9d !important;
+            box-shadow: 0 0 18px rgba(0, 255, 157, 0.15);
+            font-weight: 600;
+        }
+        .option-item.selected-correct::before {
+            content: "✓ ";
+            font-size: 1rem;
+        }
+
+        #btnCorregir {
+            background: transparent;
+            border: 1px solid rgba(255, 200, 0, 0.4);
+            color: #ffc800;
+            border-radius: 50px;
+            padding: 8px 22px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-transform: uppercase;
+        }
+        #btnCorregir:hover {
+            background: rgba(255, 200, 0, 0.12);
+            border-color: #ffc800;
+            box-shadow: 0 0 18px rgba(255, 200, 0, 0.2);
+        }
+        #btnCorregir.active-correction {
+            background: rgba(255, 200, 0, 0.15);
+            border-color: #ffc800;
+            color: #ffc800;
+            animation: pulseYellow 1.5s infinite alternate;
+        }
+        @@keyframes pulseYellow {
+            0% { box-shadow: 0 0 8px rgba(255, 200, 0, 0.2); }
+            100% { box-shadow: 0 0 22px rgba(255, 200, 0, 0.5); }
+        }
+
+        #panelCorreccion {
+            display: none;
+            background: rgba(255, 200, 0, 0.05);
+            border: 1px solid rgba(255, 200, 0, 0.2);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-top: 16px;
+        }
+        #btnGuardarCorreccion {
+            background: linear-gradient(135deg, #00c97b 0%, #00ff9d 100%);
+            border: none;
+            color: #0c0d12;
+            border-radius: 50px;
+            padding: 10px 28px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.25s ease;
+        }
+        #btnGuardarCorreccion:hover {
+            transform: scale(1.04);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.3);
+        }
+        #btnCancelarCorreccion {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #94a3b8;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.82rem;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.2s ease;
+        }
+        #btnCancelarCorreccion:hover {
+            border-color: rgba(255,255,255,0.3);
+            color: #cbd5e1;
+        }
+
+        /* Toast de feedback */
+        #toast {
+            position: fixed;
+            bottom: 130px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(20, 22, 35, 0.95);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 0.88rem;
+            color: #00ff9d;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+            max-width: 320px;
+            text-align: center;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        #toast.error {
+            border-color: rgba(255, 75, 43, 0.4);
+            color: #ff6b6b;
         }
     </style>
 </head>
-<body class="d-flex align-items-center justify-content-center vh-100">
+<body class="d-flex flex-column align-items-center">
 
-    <div class="container text-center">
-        <div id="status" class="status-msg mb-2 text-success fw-bold">CONECTADO - IA ACTIVADA (DB: @(Model?.Id?.Substring(0,8)))</div>
+    <div class="container text-center px-2" style="max-width: 650px; margin-top: 20px;">
+        <div id="status" class="status-msg mb-3">CONECTADO - IA ACTIVADA (DB: @(Model?.Id?.Substring(0,8)))</div>
 
-        <div class="row align-items-center mb-4">
-            <div class="col-12"><div id="letra" class="res-letra">--</div></div>
-            <div id="contenedorPregunta" class="col-12">
-                <div id="explicacion" class="res-texto">
-                    <span class="text-white">@(Model?.Text ?? "Toca el micro y lee la pregunta")</span>
-                    @if (!string.IsNullOrEmpty(Model?.TextEn))
-                    {
-                        <br /><small class="text-info opacity-50" style="font-size: 1.1rem;">@Model.TextEn</small>
-                    }
+        <div class="card bg-dark border-0 p-4 mb-4" style="background: rgba(255, 255, 255, 0.02) !important; backdrop-filter: blur(10px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.06) !important; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);">
+            <div class="row align-items-center">
+                <div class="col-12"><div id="letra" class="res-letra">--</div></div>
+                <div id="contenedorPregunta" class="col-12">
+                    <div id="explicacion" class="res-texto">
+                        <span class="text-white">@(Model?.Text ?? "Toca el micro y lee la pregunta")</span>
+                        @if (!string.IsNullOrEmpty(Model?.TextEn))
+                        {
+                            <br /><small class="text-info opacity-50" style="font-size: 1.1rem;">@Model.TextEn</small>
+                        }
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="listaOpciones" class="mt-4 text-start d-inline-block" style="width: 100%; max-width: 600px;">
+        <div id="listaOpciones" class="text-start w-100">
             @if (Model?.VceOptions != null)
             {
                 foreach (var opt in Model.VceOptions)
                 {
-                    <div class="p-2 mb-2 border rounded border-secondary option-item">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <span>○ @opt.Text</span>
-                                @if (!string.IsNullOrEmpty(opt.TextEn))
-                                {
-                                    <br /><small class="text-info opacity-50 ms-3">@opt.TextEn</small>
-                                }
-                            </div>
+                    <div class="option-item border-secondary">
+                        <div>
+                            <span>○ @opt.Text</span>
+                            @if (!string.IsNullOrEmpty(opt.TextEn))
+                            {
+                                <br /><small class="text-info opacity-50 ms-3">@opt.TextEn</small>
+                            }
                         </div>
                     </div>
                 }
             }
         </div>
 
-        <div class="mt-4">
-            <button id="btnMic" onclick="toggleSpeech()">
-                <svg id="micIcon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z" />
-                    <path d="M10 8a2 2 0 1 0-4 0V3a2 2 0 1 0 4 0v5zM8 0a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V3a3 3 0 0 1 3-3z" />
-                </svg>
+        <!-- Botón de corrección (visible solo cuando hay resultado) -->
+        <div id="zonaCorreccion" style="display:none; margin-top: 20px; text-align: center;">
+            <button id="btnCorregir" onclick="toggleCorreccionMode()">
+                ✏️ CORREGIR RESPUESTA
             </button>
+
+            <!-- Panel con instrucciones y botón guardar -->
+            <div id="panelCorreccion">
+                <p style="color: #ffc800; font-size: 0.85rem; margin-bottom: 14px;">
+                    📌 Selecciona la(s) opción(es) <strong>correctas</strong> del examen y presiona <strong>Guardar</strong>.
+                </p>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 0;">
+                    <button id="btnGuardarCorreccion" onclick="guardarCorreccion()">💾 Guardar corrección</button>
+                    <button id="btnCancelarCorreccion" onclick="cancelarCorreccion()">Cancelar</button>
+                </div>
+            </div>
         </div>
+
+        <!-- Toast de feedback -->
+        <div id="toast"></div>
+    </div>
+
+    <!-- Floating Mic Button -->
+    <div class="mic-container">
+        <button id="btnMic" onclick="toggleSpeech()">
+            <svg id="micIcon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z" />
+                <path d="M10 8a2 2 0 1 0-4 0V3a2 2 0 1 0 4 0v5zM8 0a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V3a3 3 0 0 1 3-3z" />
+            </svg>
+        </button>
     </div>
 
     <script>
@@ -183,6 +386,12 @@
             const letraUI = document.getElementById('letra');
             const explicacionUI = document.getElementById('explicacion');
 
+            // Resetear modo corrección antes de nueva consulta
+            cancelarCorreccion();
+            document.getElementById('zonaCorreccion').style.display = 'none';
+            currentQuestionId = null;
+            currentPreguntaTexto = null;
+
             console.log("Iniciando petición al servidor con query:", query);
 
             try {
@@ -206,6 +415,10 @@
                         return;
                     }
 
+                    // Guardamos contexto para posible corrección
+                    currentQuestionId = data.questionId || null;
+                    currentPreguntaTexto = data.preguntaTexto || query;
+
                     // Renderizamos la pregunta bilingüe
                     explicacionUI.innerHTML = `<span class="text-white">${data.preguntaTexto}</span>`;
                     if (data.preguntaEn) {
@@ -226,6 +439,7 @@
                             
                             const div = document.createElement('div');
                             div.className = "p-2 mb-2 border rounded option-item " + (esCorrecta ? "border-success text-success fw-bold" : "border-secondary");
+                            div.dataset.texto = textoEs; // guardamos el texto para corrección
                             
                             let html = `<div><span>${esCorrecta ? "● " : "○ "} ${textoEs}</span>`;
                             if (textoEn) {
@@ -239,11 +453,149 @@
                     }
                     
                     document.getElementById('status').innerText = "TERMINADO - " + data.fuente;
+
+                    // Mostrar botón de corrección
+                    document.getElementById('zonaCorreccion').style.display = 'block';
                 }
             } catch (error) {
                 console.error("Error fetch:", error);
                 document.getElementById('status').innerText = "ERROR DE SERVIDOR";
             }
+        }
+
+        // =============================================
+        // LÓGICA DE CORRECCIÓN MANUAL
+        // =============================================
+        let correctionMode = false;
+        let currentQuestionId = null;
+        let currentPreguntaTexto = null;
+
+        function toggleCorreccionMode() {
+            correctionMode = !correctionMode;
+            const btnCorregir = document.getElementById('btnCorregir');
+            const panelCorreccion = document.getElementById('panelCorreccion');
+            const listaUI = document.getElementById('listaOpciones');
+
+            if (correctionMode) {
+                // Entrar a modo corrección
+                btnCorregir.classList.add('active-correction');
+                btnCorregir.innerText = '⚡ SELECCIONANDO...';
+                panelCorreccion.style.display = 'block';
+                listaUI.classList.add('correction-mode');
+
+                // Hacer opciones clickeables
+                listaUI.querySelectorAll('.option-item').forEach(div => {
+                    div.addEventListener('click', toggleOptionSelection);
+                });
+            } else {
+                cancelarCorreccion();
+            }
+        }
+
+        function toggleOptionSelection(e) {
+            if (!correctionMode) return;
+            const div = e.currentTarget;
+            div.classList.toggle('selected-correct');
+            // Actualizar ícono
+            const span = div.querySelector('span');
+            if (span) {
+                const texto = div.dataset.texto || '';
+                if (div.classList.contains('selected-correct')) {
+                    span.innerHTML = `✓ ${texto}`;
+                } else {
+                    span.innerHTML = `○ ${texto}`;
+                }
+            }
+        }
+
+        function cancelarCorreccion() {
+            correctionMode = false;
+            const btnCorregir = document.getElementById('btnCorregir');
+            const panelCorreccion = document.getElementById('panelCorreccion');
+            const listaUI = document.getElementById('listaOpciones');
+
+            if (btnCorregir) {
+                btnCorregir.classList.remove('active-correction');
+                btnCorregir.innerText = '✏️ CORREGIR RESPUESTA';
+            }
+            if (panelCorreccion) panelCorreccion.style.display = 'none';
+            if (listaUI) {
+                listaUI.classList.remove('correction-mode');
+                // Remover listeners clonando nodos
+                listaUI.querySelectorAll('.option-item').forEach(div => {
+                    const newDiv = div.cloneNode(true);
+                    div.parentNode.replaceChild(newDiv, div);
+                });
+                // Limpiar selección visual
+                listaUI.querySelectorAll('.option-item.selected-correct').forEach(d => {
+                    d.classList.remove('selected-correct');
+                });
+            }
+        }
+
+        async function guardarCorreccion() {
+            const listaUI = document.getElementById('listaOpciones');
+            const seleccionadas = [];
+
+            listaUI.querySelectorAll('.option-item.selected-correct').forEach(div => {
+                const texto = div.dataset.texto;
+                if (texto) seleccionadas.push(texto);
+            });
+
+            if (seleccionadas.length === 0) {
+                mostrarToast('⚠️ Selecciona al menos una opción correcta.', true);
+                return;
+            }
+
+            const btnGuardar = document.getElementById('btnGuardarCorreccion');
+            btnGuardar.innerText = 'Guardando...';
+            btnGuardar.disabled = true;
+
+            try {
+                const res = await fetch('/Trainer/CorregirRespuesta', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        questionId: currentQuestionId,
+                        preguntaTexto: currentPreguntaTexto,
+                        opcionesCorrectas: seleccionadas
+                    })
+                });
+
+                const result = await res.json();
+
+                if (result.ok) {
+                    mostrarToast(`✅ ${result.mensaje}`);
+                    cancelarCorreccion();
+
+                    // Actualizar visualmente: marcar como correctas las seleccionadas
+                    listaUI.querySelectorAll('.option-item').forEach(div => {
+                        const texto = div.dataset.texto || '';
+                        const esCorrecta = seleccionadas.some(s =>
+                            texto.toLowerCase().includes(s.toLowerCase()) ||
+                            s.toLowerCase().includes(texto.toLowerCase()));
+                        
+                        div.className = "p-2 mb-2 border rounded option-item " +
+                            (esCorrecta ? "border-success text-success fw-bold" : "border-secondary");
+                        const span = div.querySelector('span');
+                        if (span) span.innerHTML = `${esCorrecta ? '● ' : '○ '}${texto}`;
+                    });
+                } else {
+                    mostrarToast(`❌ ${result.mensaje || 'Error al guardar.'}`, true);
+                }
+            } catch (err) {
+                mostrarToast('❌ Error de conexión al guardar.', true);
+            } finally {
+                btnGuardar.innerText = '💾 Guardar corrección';
+                btnGuardar.disabled = false;
+            }
+        }
+
+        function mostrarToast(mensaje, esError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = mensaje;
+            toast.className = 'show' + (esError ? ' error' : '');
+            setTimeout(() => { toast.className = ''; }, 3500);
         }
     </script>
 </body>
